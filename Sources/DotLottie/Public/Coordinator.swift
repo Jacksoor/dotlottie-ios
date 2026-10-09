@@ -185,10 +185,6 @@ public class Coordinator: NSObject, MTKViewDelegate {
         }
 #endif
         
-        guard let drawable = view.currentDrawable else {
-            return
-        }
-        
         guard !viewModel.error() else {
             return
         }
@@ -198,6 +194,12 @@ public class Coordinator: NSObject, MTKViewDelegate {
         lastDrawTime = now
 
         if let frame = viewModel.tick(milliseconds: dt) {
+            // Acquire the drawable only once a frame is ready to present: taking it
+            // first blocks the CPU work behind GPU back-pressure, and a tick that
+            // produces no new frame then needs no drawable at all.
+            guard let drawable = view.currentDrawable else {
+                return
+            }
             let commandBuffer = metalCommandQueue.makeCommandBuffer()
             
             let inputImage = CIImage(cgImage: frame)
